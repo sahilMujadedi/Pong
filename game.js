@@ -1,30 +1,41 @@
-/* Pure JS Pong game. */
+/* PONG */
 
-// Initializing and/or declaring variables.
+/* Declaring and/or initializing variables */
+
+// Canvas variables
 let canvas;
 let canvasContext;
 
-// Ball Variables
-let ballX = 390;
-let ballXV = 9;
-let ballY = 290;
-let ballYV = 3;
+// Score variables
+let playerScore = 0;
+let cpuScore = 0;
 
-// Previous ball velocity variables
-let ballXVPre;
-let ballYVPre;
+// Ball object
+let ball = {
+	x:390,
+	y:290,
+	xv:12,
+	yv:6
+};
 
-// Paddle variables
-let paddle1Y = 230;
-let paddle1X = 20;
+// Player object
+let player = {
+	x:20,
+	y:230
+};
 
-let paddle2Y = 250;
-let paddle2X = 760;
+// computer object
+let cpu = {
+	x:760,
+	y:250,
+	yv:5.45
+};
 
+// Constants
 const PADDLE_THICKNESS = 20;
 const PADDLE_HEIGHT = 140;
 
-// function that finds the mouse position
+// A function that finds the location of the mouse and returns it
 function calculateMousePos(evt) {
 	let rect = canvas.getBoundingClientRect();
 	let root = document.documentElement;
@@ -37,102 +48,128 @@ function calculateMousePos(evt) {
 	};
 }
 
+// Start the game when the window loads up
 window.onload = function() {
 	canvas = document.getElementById('gameCanvas');
 	canvasContext = canvas.getContext('2d');
-	
-	// Run mainloop and draw everything 60 times each second.
+
+	document.getElementById('player1Score').innerText = playerScore;
+	document.getElementById('player2Score').innerText = cpuScore;
+
+	// fps says how many times run everything each second
 	let fps = 60;
-	setInterval(function() { mainloop(); drawEverything(); }, 1000/fps);
-	resetBall();
-	
+	setInterval(function() { mainLoop(); drawEverything(); }, 1000/fps);
+
+	// Event listener listening for mouse movement
 	canvas.addEventListener('mousemove', function(evt) {
 		let mousePos = calculateMousePos(evt);
-		paddle1Y = mousePos.y - PADDLE_HEIGHT/2;
+		player.y = mousePos.y - (PADDLE_HEIGHT / 2);
 	});
 }
 
+// Function that draws everything to the screen
 function drawEverything() {
-	
-	// Background
+	// Draw background
 	colorRect(0, 0, canvas.width, canvas.height, "black");
-	
-	// Ball
-	colorCircle(ballX, ballY, 10, "white");
-	
-	// Player Paddle
-	colorRect(paddle1X, paddle1Y, PADDLE_THICKNESS, PADDLE_HEIGHT, "white");
-	
-	// AI Paddle
-	colorRect(paddle2X, paddle2Y, PADDLE_THICKNESS, PADDLE_HEIGHT, "white");
-	
+
+	// Draw ball
+	colorRect(ball.x, ball.y, 20, 20, "white");
+
+	// Draw player paddle
+	colorRect(player.x, player.y, PADDLE_THICKNESS, PADDLE_HEIGHT, "white");
+
+	// Draw CPU paddle
+	colorRect(cpu.x, cpu.y, PADDLE_THICKNESS, PADDLE_HEIGHT, "white");
 }
 
-function mainloop() {
-	
-	ballX += ballXV;
-	ballY += ballYV
-	
-	// If ball hits side of canvas this code resets the ball.
-	if(ballX > canvas.width) {
-		
-		resetBall();
-		
-	}
-	if(ballX < 0) {
-		 
-		resetBall();
-	
-	}
-	
-	// If the ball hits the top or bottom bounce it back.
-	if(ballY < 0) {
-		ballYV = -ballYV
-	}
-	if(ballY > canvas.height) {
-		ballYV = -ballYV
-	}
-	
-	// Paddle collisions
-	
-	// Player
-	if(ballX <= paddle1X+PADDLE_THICKNESS && ballY > paddle1Y && ballY < paddle1Y+PADDLE_HEIGHT) {
-		ballXV = -ballXV;
-	}
-	// AI
-	if(ballX > paddle2X && ballY > paddle2Y && ballY < paddle2Y+PADDLE_HEIGHT) {
-		ballXV = -ballXV;
+// Main function that controls the whole game
+function mainLoop() {
+	// Ball should always be moving
+	ball.x += ball.xv;
+	ball.y += ball.yv;
+
+	// CPU should be following ball
+	let cpuCenter = cpu.y + (PADDLE_HEIGHT / 2);
+
+	// plus and minus 35 so it doesn't chase the ball when it's close to center.
+	if (cpuCenter < ball.y - 35) {
+		cpu.y += cpu.yv;
+	} else if (cpuCenter > ball.y + 35) {
+		cpu.y -= cpu.yv;
 	}
 
+	// If ball hits side of canvas add point and reset the ball
+	if (ball.x > cpu.x) {
+		resetBall();
+		playerPoint();
+	}
+	if (ball.x < player.x) {
+		resetBall();
+		cpuPoint();
+	}
+
+	// If ball hits top or bottom it bounces it back
+	if (ball.y < 0) {
+		ball.yv = -ball.yv;
+	}
+	if (ball.y > canvas.height) {
+		ball.yv = -ball.yv;
+	}
+
+	/* Paddle collisions */
+
+	// Player collision
+	if (
+		ball.x <= player.x + PADDLE_THICKNESS &&
+		ball.y > player.y &&
+		ball.y < player.y + PADDLE_HEIGHT
+	) {
+		ball.xv = -ball.xv;
+	}
+
+	// CPU collision
+	if (
+		ball.x > cpu.x - PADDLE_THICKNESS &&
+		ball.y > cpu.y &&
+		ball.y < cpu.y + PADDLE_HEIGHT
+	) {
+		ball.xv = -ball.xv
+	}
 }
 
-// Makes drawing shapes a little faster.
+// Makes drawing shapes easier to understand
 function colorRect(leftX, topY, width, height, drawColor) {
 	canvasContext.fillStyle = drawColor;
 	canvasContext.fillRect(leftX, topY, width, height);
 }
-function colorCircle(centerX, centerY, radius, drawColor) {
-	canvasContext.fillStyle = drawColor;
-	canvasContext.beginPath();
-	canvasContext.arc(centerX, centerY, radius, 0, Math.PI*2, true);
-	canvasContext.fill();
-}
 
-// Reset ball function
+// A function to reset the ball
 function resetBall() {
-	
-	// Set all variables back to default and set previous velocity variables so we can reverse the balls direction to the winner when a score happens.
-	ballX = 390;
-	ballY = 290;
-	ballXVPre = ballXV;
-	ballYVPre = ballYV;
-	ballXV = 0;
-	ballYV = 0;
-	
-	// Small timeout so players know a score happened.
+	ball.x = 390;
+	ball.y = 290;
+	let prevBallXV = ball.xv;
+	let prevBallYV = ball.yv;
+	ball.xv = 0;
+	ball.yv = 0;
+
+	// Small break so players know a score happened
 	setTimeout(function() {
-		// Whoever wins gets the ball first.
-		ballXV = -ballXVPre;
-		ballYV = -ballYVPre;
+		// Whoever won last round gets the ball first
+		ball.xv = -prevBallXV;
+		ball.yv = -prevBallYV;
 	}, 1000);
 }
+
+function resetCpuPaddle() {
+	cpu.y = 250;
+}
+
+function cpuPoint() {
+	cpuScore += 1;
+	document.getElementById('player2Score').innerText = cpuScore;
+}
+function playerPoint() {
+	playerScore += 1;
+	document.getElementById('player1Score').innerText = playerScore;
+}
+
