@@ -1,5 +1,5 @@
 # Pong
-I am following a tutorial to create the game Pong using pure JavaScript. Not finished.
+A Pong game made from Pure JavaScript to test my understanding of the language.
 
 <hr>
 
